@@ -1,0 +1,908 @@
+\title{Image transformations for compression}
+
+\author{Vicente González Ruiz}
+
+\maketitle
+
+\tableofcontents
+
+\section{Insights}
+\begin{itemize}
+\tightlist
+%\def\labelenumi{\arabic{enumi}.}
+\item
+  Signals can be represented at least in two different domains: the
+  signal domain (for example, time in the case of sound of space in the
+  case of image) and the frequency domain (in general, in a transform
+  domain).
+\item
+  Transform coding is based on the idea that, in the transform domain,
+  most of the energy of the signal can be compacted in a small number of
+  (transform) coefficients.
+\item
+  This property can be interesting for increasing the coding efficiency.
+\end{itemize}
+
+\section{Basic coding steps}
+\subsection{Encoder}
+\begin{enumerate}
+\tightlist
+\item
+  Split \(s\) into blocks of \(B\) samples, if required.
+\item
+  Transform each block.
+\item
+  (Optional) Quantize the coefficients.
+\item
+  Lossless encode the quantized coefficients, performing a minimal
+  bit-allocation.
+\end{enumerate}
+
+\subsection{Decoder}
+\begin{enumerate}
+\tightlist
+\item
+  Decode the coefficients of each block.
+\item
+  (Optional) ``Dequantize'' the coefficients of each block.
+\item
+  Inverse-transform each block.
+\item
+  Join the blocks, if required.
+\end{enumerate}
+
+\section{Splitting}
+\begin{enumerate}
+\tightlist
+\item
+  Divide \(s=\{s_n\}_{n=0}^{N-1}\) into \(\lceil N/B \rceil\) blocks
+  \(\{c_1, \cdots, c_{\lceil N/B \rceil}\}\) of \(B\) samples.
+\end{enumerate}
+
+\section{Transform of a block}
+\begin{itemize}
+\item
+  In the forward transform the samples of the block are correlated with
+  (the block is compared to) a set of basis functions
+
+  \begin{equation}
+    \{C_u\}_{u=0}^{B-1} = \sum_{n=0}^{B-1}a_{u,n}c_n.
+    \tag{forward\_transform}
+  \end{equation}
+\item
+  The backward (inverse) transform restores the original samples
+
+  \begin{equation}
+    \{c_n\}_{n=0}^{B-1} = \sum_{u=0}^{B-1}b_{n,u}C_u.
+    \tag{inverse\_transform}
+  \end{equation}
+\item
+  These equations can be written in matrix form as
+
+  \begin{equation}
+    C=Ac
+    \tag{forward\_transform\_matrix\_form}
+  \end{equation}
+
+  \begin{equation}
+    c=BC,
+    \tag{inverse\_transform\_matrix\_form}
+  \end{equation}
+
+  where \(A\) and \(B\) are matrices, being
+  \begin{equation}
+    \begin{array}{l}
+    [A]_{u,n} = a_{u,n} \\\relax
+    [B]_{n,u} = b_{n,u}.
+    \end{array}
+  \end{equation}
+
+\item
+  In transform coding, \(A\) and \(B\) must be inverses of each other
+  (\(B=A^{-1}\)), i.e.
+
+  \begin{equation}
+    AB = BA = I,
+  \end{equation}
+
+  where \(I\) is the identity matrix.
+\end{itemize}
+
+\section{Overlaped analysis}
+
+\begin{verbatim}
+0              N-1            2N-1            3N-1
++---------------+---------------+---------------+ s[n]
+<--------Transform Step--------->
+                <---------Transform Step-------->
+\end{verbatim}
+
+\begin{itemize}
+\item
+  Each transform step inputs \(2N\) samples and outputs \(N\) MDCT
+  coeficients.
+\item In the case of the sound,
+  \(N\) can vary depending on the characteristics of the sound. For
+  \emph{complex} sounds without clear armonics (such as a plosive
+  sound), shortened windows improve the performance. For \emph{simple}
+  sounds (such as a music instrument), large windows are better.
+\end{itemize}
+
+
+\section{A color transform}
+\subsection{Luminance and chrominance}
+\begin{itemize}
+\tightlist
+\item
+  \href{https://en.wikipedia.org/wiki/Chrominance}{Chrominance} (or
+  chroma) is the signal used in video systems to convey the color
+  information of the picture or a video. It was defined to add the color
+  signal to the black and white one in analog TV. Thus, the same signal,
+  composed by two different subsignals: Y and UV that can be isolated by
+  filtering, was compatible with both, black and white (which only used
+  Y) and color ones (that used
+  \href{https://en.wikipedia.org/wiki/YUV}{YUV}).
+\end{itemize}
+
+\begin{equation}
+    \left(
+      \begin{array}{c}
+        \text{Y}\\
+        \text{U}\\
+        \text{V}
+      \end{array}
+    \right) =
+    \left(
+      \begin{array}{rrr}
+          0,299 & 0,587 & 0,144 \\
+          -0.14713 & -0.28886 &  0.436 \\
+          0.615   & -0.51499 & -0.10001
+      \end{array}
+    \right)
+    \left(
+      \begin{array}{c}
+        \text{R}\\
+        \text{G}\\
+        \text{B}
+      \end{array}
+    \right)
+\end{equation}
+
+\begin{equation}
+    \left(
+      \begin{array}{c}
+        \text{R}\\
+        \text{G}\\
+        \text{B}
+      \end{array}
+    \right) =
+    \left(
+      \begin{array}{rrr}
+          1 &  0       &  1.13983 \\
+          1 & -0.39465 & -0.58060 \\
+          1 &  2.03211 &  0
+      \end{array}
+    \right)
+    \left(
+      \begin{array}{c}
+        \text{Y}\\
+        \text{U}\\
+        \text{V}
+      \end{array}
+    \right)
+\end{equation}
+
+\begin{itemize}
+\item
+  Later, in digital video, the YUV color domain was called the
+  \href{https://en.wikipedia.org/wiki/YCbCr}{YCrCb color domain}.
+\item
+  Used, for example, in \href{https://en.wikipedia.org/wiki/JPEG}{JPEG}.
+\end{itemize}
+
+\subsection{Spectral (color) redundancy}
+\begin{itemize}
+\tightlist
+\item
+  \href{https://en.wikipedia.org/wiki/RGB_color_model}{\(\text{RGB}\)
+  domain} is more redundant than the
+  \href{https://en.wikipedia.org/wiki/YUV}{\(\text{YUV}\) domain}:
+\end{itemize}
+
+%\iframe{1200}{1200}{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/color_redundancy.ipynb}
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/color_redundancy.ipynb}{Color
+  redundancy~\cite{barr__image, gouillart__scikit, solem__programming}}.
+
+\section{Chrominance subsampling}
+\href{https://en.wikipedia.org/wiki/Chroma_subsampling}{The human visual
+system is more sensitive to the luma (Y) than to the chroma (UV)}. This
+means than the chroma can be subsampled without a significant loss of
+quality in the images.
+
+\imgw{600}{graphics/color_subsampling.svg}
+
+%\iframe{1200}{1200}{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/chroma_subsampling.ipynb}
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/chroma_subsampling.ipynb}{Chroma subsampling}.
+
+\section{Orthogonal transform}
+\begin{itemize}
+\tightlist
+\item
+  The rows of \(A\) (\(a_{k,*}\)) are refered to as the \emph{basis
+  vectors} of the transform, and should form an \emph{orthogonal} basis
+  set in order to provide maximum energy compactation. The rows can be
+  also seen as the coefficients of \(B\) filters, being the first one
+  (\(i=0\)) the ``low-pass'' one, which will produce the DC coefficient,
+  and the rest (\(i\geq 1\)) the ``high-pass'' filters, which will
+  generate the AC (Alternating Current) coeffs. These \(B\) filters form
+  a filter-bank where the overlapping between the frequency response of
+  the filters should be as small as possible if we want maximum energy
+  compaction.
+\end{itemize}
+
+\subsection{Orthonormal transform}
+\begin{itemize}
+\item
+  If the basis vectors of a orthogonal transform are unit vectors, the
+  transform is said orthonormal.
+\item
+  For orthonormal transforms, it holds that
+
+  \begin{equation}
+    A^{-1} = A^T.
+  \end{equation}
+
+  Therefore, the pair of transforms refered by Eqs.
+  (forward\_transform\_matrix\_form) and
+  (inverse\_transform\_matrix\_form) can be written as
+
+  \begin{equation}
+    \begin{array}{l}
+      C=Ac \\
+      c=A^TC.
+    \end{array}
+  \end{equation}
+\end{itemize}
+
+\section{Signal energy}
+\begin{equation}
+  ||s||^2 = \langle x, x\rangle = \sum_{n=0}^{B-1}s_n^2.
+\end{equation}
+
+\subsection{Energy conservation}
+\begin{itemize}
+\item
+  if \(A\) is orthonormal (also called \emph{unitary}), the energy of
+  the transformed signal is the equal to the original one:
+
+  \begin{equation}
+     ||C||^2 = ||c||^2.
+  \end{equation}
+\end{itemize}
+
+\subsection{Proof}
+\begin{equation}
+  ||C||^2 = C^TC = (Ac)^TAc = c^TA^TAc = c^TIc = c^Tc = ||c||^2.
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Expected_value}{Expected value}}
+The expected value \(\operatorname{E}[X]\) of a random variable \(X\),
+intuitively, is the long-run average value of repetitions of the
+experiment it represents. Let \(X\) be a random variable with a finite
+number of finite outcomes \(X_1\), \(X_2\), \(\cdots\), \(X_n\)
+occurring with probabilities \(p_1\), \(p_2\), \(\cdots\), \(p_k\),
+respectively. The expected value (or \emph{expectation}) of \(X\) is
+defined as
+
+\begin{equation}
+  \operatorname{E}[X] = \sum_{i=1}^n X_ip_i.
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Variance}{Variance}}
+The variance of a random variable \(X\) is the expected value of the
+squared deviation from the mean of \(X\):
+
+\begin{equation}
+  \sigma_X=\operatorname{Var}(X) = \operatorname{E}\left[(X - \operatorname{E}[X])^2 \right] = \operatorname{E}\left[(X - \operatorname{E}[X])(X - \operatorname{E}[X]) \right] = \operatorname{E}\left[X^2 \right] - \operatorname{E}[X]^2.
+\end{equation}
+
+\subsection{\href{https://en.wikipedia.org/wiki/Covariance}{Covariance}}
+The covariance \(\operatorname{cov}(X,Y)\) is a measure of the joint
+variability of two random variables \(X\), \(Y\), defined as:
+
+\begin{equation}
+  \operatorname{cov}(X,Y) = \operatorname{E}{\big[(X - \operatorname{E}[X])(Y - \operatorname{E}[Y])\big]},
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Covariance_matrix}{Covariance
+matrix}}
+A covariance matrix \(\Sigma_Z\) is a matrix whose element in the \(i\),
+\(j\) position is the covariance between the \(i\)-th and \(j\)-th
+elements of a random vector \(Z\) (a collection of random variables
+\(Z_i\)):
+
+\begin{equation}
+  \Sigma_Z =
+    \begin{bmatrix}
+       \operatorname{E}[(Z_1 - \mu_1)(Z_1 - \mu_1)] & \operatorname{E}[(Z_1 - \mu_1)(Z_2 - \mu_2)] & \cdots & \operatorname{E}[(Z_1 - \mu_1)(Z_n - \mu_n)] \\ \\
+       \operatorname{E}[(Z_2 - \mu_2)(Z_1 - \mu_1)] & \operatorname{E}[(Z_2 - \mu_2)(Z_2 - \mu_2)] & \cdots & \operatorname{E}[(Z_2 - \mu_2)(Z_n - \mu_n)] \\ \\
+       \vdots & \vdots & \ddots & \vdots \\ \\
+       \operatorname{E}[(Z_n - \mu_n)(Z_1 - \mu_1)] & \operatorname{E}[(Z_n - \mu_n)(Z_2 - \mu_2)] & \cdots & \operatorname{E}[(Z_n - \mu_n)(Z_n - \mu_n)]
+    \end{bmatrix} =
+    \operatorname{E}
+    \left[
+       (Z - \operatorname{E}[Z])
+       (Z - \operatorname{E}[Z])^{\rm T}
+    \right].
+\end{equation} where \begin{equation}
+  \mu_i = \operatorname{E}(Z_i),
+\end{equation} is the expected value of the \(i\)-th entry in the vector
+\(Z\).
+
+\section{Covariance matrix of a block-based transform}
+\begin{equation}
+  \Sigma_S = \operatorname{E} \left[
+       (S - \operatorname{E}[S])
+       (S - \operatorname{E}[S])^{\rm T}
+    \right] = \operatorname{E} \left[
+       A(s - \operatorname{E}[s])
+       (s - \operatorname{E}[s])^{\rm T}A^{\rm T}
+    \right] = 
+    A \operatorname{E} \left[
+       (s - \operatorname{E}[s])
+       (s - \operatorname{E}[s])^{\rm T}
+    \right] A^{\rm T} = 
+    A\Sigma_sA^{\rm T}.
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Correlation_and_dependence}{Correlation}}
+The most familiar measure of dependence between two random variables
+\(X\) and \(Y\) is the Pearson product-moment correlation coefficient,
+or ``Pearson's correlation coefficient'', commonly called simply ``the
+correlation coefficient''. It is obtained by dividing the covariance of
+the two variables by the product of their standard deviations.
+
+\begin{equation}
+  \rho_{X,Y}=\mathrm{corr}(X,Y)={\mathrm{cov}(X,Y) \over \sigma_X \sigma_Y} ={\operatorname{E}[(X-\mu_X)(Y-\mu_Y)] \over \sigma_X\sigma_Y}
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Autocorrelation}{Autocorrelation}}
+Autocorrelation, also known as serial correlation, is the correlation of
+a signal \(s[t]\) with a delayed copy of itself as a function of delay
+\(s[t+\tau]\).
+
+\begin{equation}
+  \rho_s[\tau]=\rho_{s[t],s[t+\tau]}={\operatorname{E}[(s[t]-\mu)(s[t+\tau]-\mu)] \over \sigma^2}
+\end{equation}
+
+where \(\mu=\operatorname{E}(s[t])=\operatorname{E}(s[t+\tau])\) and
+\(\sigma=\sigma_{s[t]}=\sigma_{s[t+\tau]}\).
+
+\section{Autocorrelation matrix}
+The autocorrelation matrix of a random process \(X\) is the matrix
+\([R]\) defined by
+
+\begin{equation}
+  [R]_{i,j} = \rho_X[|i-j|].
+\end{equation}
+
+\section{\href{https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors}{Eigenvalue and eigenvector}}
+In linear algebra, an eigenvector or characteristic vector
+\(\overrightarrow{v}\) of a linear transformation \(T()\) is a non-zero
+vector that changes by only a scalar factor \(\lambda\) (known as the
+eigenvalue, characteristic value, or characteristic root of
+\(\overrightarrow{v}\)) when that linear transformation is applied to
+it:
+
+\begin{equation}
+  {\displaystyle T(\overrightarrow{v} )=\lambda \overrightarrow{v}}.
+\end{equation}
+
+When \(T()\) can be expressed by a matrix \(X\), we get
+
+\begin{equation}
+  A\overrightarrow{v} =\lambda \overrightarrow{v}.
+\end{equation}
+
+\section{Coding gain}
+\begin{itemize}
+\item
+  The coding gain measures the compaction level of the transform, which
+  is defined as
+
+  \begin{equation}
+    G=\frac{\frac{1}{B}\displaystyle\sum_{u=0}^{B-1}\sigma_{C_u}^2}{\sqrt[B]{\displaystyle\prod_{u=0}^{B-1}\sigma_{C_u}^2}},
+  \end{equation}
+
+  where \(\sigma_{C_u}^2\) is the variance of coeff \(C_u\).
+\end{itemize}
+
+\section{Karhunen-Loéve transform (KLT)}
+\begin{itemize}
+\item
+  For the KLT, the rows of \(A\) (the basis of the forward transform)
+  are the eigenvectors of the (unnormalized) autocorrelation matrix
+  \([R]\) of the signal \(s\), where
+
+  \begin{equation}
+    [R]_{i,j} = \operatorname{E}\big(s_ns_{n+|i-j|}\big).
+  \end{equation}
+\item
+  It can be proven that KLT minimizes
+  \(\sqrt[B]{\prod_{u=0}^{B-1}\sigma_{C_u}^2}\), and therefore, it
+  provides the maximum coding gain. Unfortunately, the basis fuctions of
+  the KLT depends on \(s\). If \(S\) is
+  non-\href{https://en.wikipedia.org/wiki/Stationary_process}{stationary},
+  the autocorrelation matrix (or the basis) must be sent to the decoder
+  (to run the inverse transform) as side information. However, if
+  \(B=2\), the KLT is
+
+  \begin{equation}
+    A_{\text{2-KLT}} = \frac{1}{\sqrt{2}}
+    \left[
+      \begin{array}{cc}
+        1 & 1 \\
+        1 & -1
+      \end{array}
+    \right]
+  \end{equation}
+
+  for all signals.
+\end{itemize}
+
+\section{Discrete cosine transform (DCT))}
+\hypertarget{definition}{%
+\subsubsection{Definition}\label{definition}}
+
+\begin{itemize}
+\item
+  The forward (direct) transform is
+
+  \begin{equation}
+    S_u = \frac{\sqrt{2}}{\sqrt{N}}
+    K(u)\sum_{n=0}^{N-1} s_n\cos\frac{(2n+1)\pi u}{2n},
+  \end{equation}
+
+  and the backward (inverse) transform is
+
+  \begin{equation}
+    s_n = \frac{\sqrt{2}}{\sqrt{N}}
+    \sum_{u=0}^{N-1} K(u)S_u\cos\frac{(2n+1)\pi u}{2n},
+  \end{equation}
+
+  where \(N\) is the number of pixels, and \(s_n\) denotes the \(n\)-th
+  pixel of the image \(s\), and
+
+  \begin{equation}
+    K(u) =
+    \left\{
+      \begin{array}{ll}
+      \frac{1}{\sqrt{2}} & \text{si}~u=0\\
+        1 & \text{if}~u>0.
+      \end{array}
+      \right.
+  \end{equation}
+\end{itemize}
+
+\subsection{Properties fo DCT}
+\begin{enumerate}
+\tightlist
+\item
+  \textbf{Separable}: the \(D\)-dimensional DCT can be computed using
+  the \(1\)D DCT in each possible dimension.
+\item
+  In general, \textbf{high energy compaction}: a small number of DCT
+  coefficients can reconstruct with a reasonable accuracy the original
+  signal.
+\item
+  \textbf{Unitary}: the energy of the DCT coefficients is proportional
+  to the energy of the samples.
+\item
+  \textbf{Orthonormality}: DCT basis are orthonormal (orthogonal +
+  unitary) and therefore, DCT coefficients are uncorrelated.
+\end{enumerate}
+
+%\iframe{1200}{1200}{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/DCT.ipynb}
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/DCT.ipynb}{DCT}.
+
+\section{Dyadic discrete wavelet transform (DWT)}
+Key features:
+
+\begin{enumerate}
+\tightlist
+\item
+  \textbf{High spectral compaction}, specially when transient signals
+  are present.
+\item
+  \textbf{Multiresolution representation}: it is easy to recover a
+  reduced version of the original image if only a sub-set of the
+  coefficients is proccesed.
+\end{enumerate}
+
+\section{Filters bank implementation}
+Where: \begin{equation}
+  s = (\uparrow^2(L)*{\text s}_L) + (\uparrow^2(H)*{\text s}_H)
+\end{equation} and \begin{equation}
+  \begin{array}{rcl}
+    L & = & \downarrow^2(s*{\text a}_L) \\
+    H & = & \downarrow^2(s*{\text a}_H).
+  \end{array}
+\end{equation}
+
+Comments:
+
+\begin{enumerate}
+\item
+  \({\text a}_L\) and \({\text a}_H\) are the transfer function (the
+  transfer function of a filter is the response of that filter to the
+  unitary impulse function (Dirac's delta)) of a low-pass filter and
+  high-pass filter, respectively, that have been designed to be
+  complementary (ideally, in \(L\) we only found the frequencies of
+  \(s\) that are not in \(H\), and viceversa). When this is true, it is
+  said the we are using a perfect-reconstruction quadrature-mirror
+  filter-bank and the DWT is \emph{biorthogonal}.
+\item
+  In the wavelet theory, \({\text s}_L\) is named the \emph{scale
+  function} and \({\text s}_H\) the \emph{mother function} or
+  \emph{wavelet basis function}. The coefficients of \(L\) are also
+  known as the \emph{scale coeffients} and the coeffcientes of \(H\) the
+  \emph{wavelet coefficients}~\cite{sovic2012signal}.
+\item
+  \(\downarrow^2(\cdot)\) and \(\uparrow^2(\cdot)\) donote the
+  subsampling and oversampling operations:
+\end{enumerate}
+
+\begin{equation}
+    (\downarrow^2(s))_i = s_{2i}
+\end{equation}
+
+and
+
+\begin{equation}
+    (\uparrow^2(s))_i =
+  \left\{
+  \begin{array}{ll}
+    s_{i/2} & \text{if $i$ if even} \\
+    0 & \text{otherwise}.
+  \end{array}
+  \right.
+  \end{equation}
+
+where \(s_i\) if the \(i\)-th sample of \(s\).
+
+\begin{enumerate}
+\setcounter{enumi}{3}
+\item
+  \(*\) is the convolution operator.
+\item
+  Notice that half of the filtered samples are wasted.
+\end{enumerate}
+
+\section{Lifting implementation~\cite{sweldens1997building}}
+\imgw{1000}{graphics/lifting.svg}
+
+Comments:
+
+\begin{enumerate}
+\tightlist
+\item
+  \begin{equation}
+  H_i = s_{2i+1} - {\cal P}(\{s_{2i}\})_i
+  \tag{PredictionStep}
+  \label{eq:PredictionStep}
+  \end{equation}
+\end{enumerate}
+
+\begin{equation}
+  L_i = s_{2i} + \{{\cal U}(H)\}_i
+  \tag{UpdateStep}
+  \label{eq:UpdateStep}
+\end{equation}
+
+\begin{enumerate}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Subsampled signals \(\{s_{2i}\}\) and \(\{s_{2i+1}\}\) can been
+  computed by using
+\end{enumerate}
+
+\begin{equation*}
+   \{s_{2i+1}\} = \downarrow^2(Z^{-1}(s))
+\end{equation*}
+
+and
+
+\begin{equation*}
+   \{s_{2i}\} = \downarrow^2(s),
+\end{equation*}
+
+where \(Z^{-1}\) represents the one sample delay function.
+
+\begin{enumerate}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  \(H\) has tipically less energy and variance and entropy than
+  \(\{s_{2i+1}\}\).
+\item
+  \(L\) has less aliasing than \(\{s_{2i}\}\) (notice that \(L\) has not
+  been low-pass filtered before subsampling it).
+\end{enumerate}
+
+\section{$T$-levels 1D-DWT}
+\imgw{1000}{graphics/n_levels_dwt1d.svg}
+
+\section{2D-DWT}    
+\begin{itemize}
+\tightlist
+\item
+  The one-dimensional (1D) DWT is a separable transform. Therefore, the
+  2D DWT can be computed applying the DWT to all the rows of an image
+  and next, to all the columns, or viceversa.
+\end{itemize}
+
+\imgw{800}{graphics/2D-DWT.svg}
+
+\begin{itemize}
+\tightlist
+\item
+  The contribution of a coefficient of a subband \(b\) is determined
+  by the DWT basis fuction \({s_H}^b\) asociated to that coefficient,
+  which can be empirically determined by applying the inverse DWT to
+  the Dirac Impulse function localized in that coefficient (notice
+  that \({s_H}^b\) does not depend on the coefficient because we are
+  supposing that all the coefficients of a subband have the same
+  contribution, the same basis
+  fuction)~\cite{rabbani2009jpeg}. Therefore, the L\(_2\)-norm for the
+  subband \(b\) is computed as the energy of a basis function of that
+  subband as
+\end{itemize}
+
+\begin{equation}
+  E({{\text s}_H}^b) = \sum_i{|{{\text s}_H}^b_i|}^2.
+\end{equation}
+
+In the case of the 5/3-DWT, the L\(_2\)-norms of the DWT subbands are:
+\imgw{400}{graphics/factores_5_3_L2_norm.svg}
+
+\section{Haar filters~\cite{haar1910theorie}}
+The \(i\)-th sample of the low-frequency subband is computed (using a
+filter plus subsampling) as
+
+\begin{equation}
+  L_i=\frac{s_{2i}+s_{2i+1}}{2},
+  \tag{HaarL}
+  \label{eq:Haar_A-LPF}
+\end{equation}
+
+and the \(i\)-th sample of the high-frequency subband as
+
+\begin{equation}
+  H_i=s_{2i+1}-s_{2i}.
+  \tag{HaarH}
+  \label{eq:Haar_A-HPF}
+\end{equation}
+
+If Lifting is used,
+
+\begin{equation}
+  L_i=s_{2i}+\frac{H_i}{2}.
+  \tag{HaarLLifted}
+  \label{eq:Haar_A-LPF-lifting}
+\end{equation}
+
+Notice that \(H_i=0\) if \(s_{2i+1}=s_{2i}\), therefore, the Haar
+transform is good to encode constant signals. The notation X/Y indicates
+the length (taps or number of coefficients) of the low-pass and the
+high-pass (convolution) filters of the filter bank implementation (not
+Lifting), respectively.
+
+%\iframe{1200}{1200}{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/Haar_2d_basis.ipynb}
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/Haar_2d_basis.ipynb}{Haar basis}.
+
+\section{Linear (5/3) filters~\cite{sweldens1997building}}
+The $i$-th sample of the low-frequency subband (using a filter-bank implementation) is
+
+\begin{equation}
+  L_i=-\frac{1}{8}s_{2i-2}+\frac{1}{4}s_{2i-1}+\frac{3}{4}s_{2i}
+  +\frac{1}{4}s_{2i+1}-\frac{1}{8}s_{2i+2}
+  \tag{5/3L}
+  \label{eq:Lineal_A-LPF}
+\end{equation}
+
+and the $i$-th sample of the high-frequency signal is computed by
+
+\begin{equation}
+  H_i=s_{2i+1}-\frac{s_{2i}+s_{2i+2}}{2},
+  \tag{5/3H}
+  \label{eq:Lineal_A-HPF}
+\end{equation}
+
+that, if we use Lifting, it can be also computed using less operations by
+
+\begin{equation}
+  L_i=s_{2i}+\frac{H_{i-1}+H_i}{4}.
+  \tag{5/3LLifted}
+  \label{eq:Lineal_A-LPF_lifting}
+\end{equation}
+
+Notice that $H_i=0$ if $s_{2i+1}=(s_{2i}+s_{2i+2})/2$. Therefore, the 5/3 transform is suitable to encode lineally piece-wised signals.
+
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/linear_2d_basis.ipynb}{Linear (5/3) basis}.
+
+\section{Quantization in the transform domain}
+\begin{itemize}
+\tightlist
+\item
+  If the transform is orthogonal, by definition coeffs \(S[k]\) are
+  uncorrelated. Therefore, a scalar quantizer can performs an optimal
+  quantization.
+\end{itemize}
+
+\section{Bit-planes progression}
+\imgw{800}{graphics/bit-plane-trans.svg}
+
+\subsection{Bit allocation (bit-rate control)}
+\begin{itemize}
+\item
+  In lossless coding, coeffs \(S_u\) are directly encoded using some
+  text compression algorithm or a combination of them.
+\item
+  However, in most situations, a lossy compression is needed and in this
+  case, a transform coder must determine, given a maximum number of bits
+  \(\overline{R}\) (which is defined by the compression ratio selected
+  by the user), the number of bits \(R(u)\) used by the quantizer for
+  each coeff \(S_k\).
+\end{itemize}
+
+\section{Bit allocation based on minimizing the quantization error}
+\begin{itemize}
+\tightlist
+\item
+  In unitary transforms, as a consequence of the energy preserving
+  property, an uniform quantization (i.e.~the dividing each coeff
+  \(S_u\) by the same quantization step) should provide optimal bit
+  allocation if we want to minimize the quantization error (the
+  distortion) in the recostructed signal \(s\).
+\end{itemize}
+
+\section{Bit allocation based on minimizing the variance of the quantization error}
+\begin{itemize}
+\item
+  Lets assume that the variance of the coeffs, defined as
+
+  \begin{equation}
+    \sigma_{S_u}^2 = \text{E}\big( (S_u - \overline{S})^2\big)
+   \end{equation}
+
+  (where
+
+  \begin{equation}
+     \overline{S} = \text{E}(S) = \frac{1}{B}\sum_{u=0}^{B-1} S_u
+   \end{equation}
+
+  corresponds to the amount of information provided by each coeff.
+  Therefore, coeffs with high variance should be assigned more bits and
+  viceversa.
+\item
+  Lets define
+
+  \begin{equation}
+    {\overline{R}} = \frac{1}{B}\sum_{u=0}^{B-1}R(u)
+    \tag{$\overline{R}$}
+  \end{equation}
+
+  as the (target) average number of bits/coeff, where \(R(u)\) is the
+  number of bits assigned to coeff \(S_u\).
+\item
+  If the mean square error is as a measure of distortion, the variance
+  of the distortion generated by the quantization of a coeff \(S_u\)
+  \href{http://cdn.intechopen.com/pdfs/16267/InTech-Rate_control_in_video_coding.pdf}{can
+  be modeled} by
+
+  \begin{equation}
+    \sigma_{S_u-\tilde{S}_u}^2=\alpha_{u}2^{-2R(u)}\sigma_{S_u}^2,
+  \end{equation}
+
+  where \(\alpha_{u}\) depends on the frequency \(u\) and the quantizer.
+\end{itemize}
+
+\href{https://nbviewer.jupyter.org/github/vicente-gonzalez-ruiz/image_transformations_for_coding/blob/master/DR_model.ipynb}{DR\_model notebook}.
+    
+\begin{itemize}
+\item
+  Assuming an additive distorion metric, the total distortion variance
+  for \(R_k\) bits/coeff is given by
+
+  \begin{equation}
+    D = \sigma_{S-\tilde{S}}^2 = \sum_{u=0}^{B-1} \sigma_{S_u-\tilde{S}_u}^2 = \sum_{u=0}^{B-1}\alpha_u 2^{-2R(u)}\sigma_{S_u}^2 = \alpha\sum_{u=0}^{B-1}2^{-2R(u)}\sigma_{S_u}^2
+    \tag{$D$}
+  \end{equation},
+
+  supposing that \(\alpha_u = \alpha\) is constant for all coeffs (a
+  valid supposition for unitary transforms because the quantization
+  error generated in each coeff should be the same if an uniform
+  quantizer is used).
+\item
+  The objective of the bit-allocation process is to find the
+  \(\{R(u)\}_{u=0}^{B-1}\) so that minimize \(D\) subject to constraint
+  \(\overline{R}\):
+
+  \begin{equation}
+    \underset{\{R(u)\}_{u=0}^{B-1}}{\operatorname{arg min}} D, \text{s.t.}~{\overline{R}}. 
+  \end{equation}
+\item
+  This is an optimization problem that can be solved using
+  \href{https://en.wikipedia.org/wiki/Lagrange_multiplier}{Lagrange
+  multipliers} (note: the following development is not the ``standard''
+  way of using Lagrenge multipliear, but it is equivalent).
+\item
+  Lets define the Lagrangian functional
+
+  \begin{equation}
+    J = D - \lambda\Big( \overline{R} - \frac{1}{B}\sum_{u=0}^{B-1}R(u) \Big)= \alpha \sum_{u=0}^{B-1} 2^{-2R(u)}\sigma_{S_u}^2 - \lambda \Big( \overline{R} - \frac{1}{B}\sum_{u=0}^{B-1}R(u) \Big),
+  \end{equation}
+\end{itemize}
+
+which taking
+
+\begin{equation}
+    \frac{\partial J}{\partial R(u)} = 0
+  \end{equation}
+
+produces that
+
+\begin{equation}
+    R(u) = \frac{1}{2}\log_2\big( 2\alpha\ln 2\sigma_{S_u}^2 \big) - \frac{1}{2}\log_2\lambda.
+    \tag{$R(u)$}
+  \end{equation}
+
+\begin{itemize}
+\item
+  Substituting \(R(u)\) in Eq. (\(\overline{R}\)), we get that
+
+  \begin{equation}
+    \overline{R} = \frac{1}{B}\sum_{u=0}^{B-1}\frac{1}{2}\log_2\big( 2\alpha\ln 2\sigma_{S_u}^2 \big) - \frac{1}{2}\log_2\lambda.
+  \end{equation}
+\item
+  Operating
+
+  \begin{equation}
+    \lambda = \prod_{u=0}^{B-1}\sqrt[B]{2\alpha\ln 2\sigma_{S_u}^2} - 2^{-2\overline{R}}.
+  \end{equation}
+\item
+  Substituting \(\lambda\) in Eq. (\(R(u)\)), we obtain the optimal
+  number of bits for each coeff
+
+  \begin{equation}
+    R(u) = \overline{R} + \frac{1}{2}\log_2\frac{\sigma_{S_u}^2}{\displaystyle\prod_{u=0}^{B-1}\sqrt[B]{\sigma_{S_u}^2}}.
+  \end{equation}
+
+  which minimizes the variance of the quantization error. Notice that
+  this value depends proportionally on \(\overline{R}\) (the target
+  average bits/coeff), logaritmically on \(\sigma_{S_u^2}\) (the
+  variance of the coeff) and log-inversely on the geometric mean of the
+  variances of all coeffs.
+\end{itemize}
+
+\section{Encoding}
+\begin{itemize}
+\tightlist
+\item
+  For DCT, usually ZigZag-RLE followed by 0-order entropy coding.
+\item
+  For DWT, tree coding or block-based coding.
+\end{itemize}
+
+\section{Code-stream orderings and scalabilities}
+\begin{itemize}
+\tightlist
+\item
+  The order in which the DWT coefficients are decoded determines the type of
+  scalability (example with 2 qualities and 3 resolutions):
+\end{itemize}
+
+\imgw{800}{graphics/orderers-and-scalabilities.svg}
+
+\bibliography{DWT,Python}
